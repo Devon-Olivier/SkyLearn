@@ -3,10 +3,7 @@ import re
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured, ValidationError
-from django.core.validators import (
-    MaxValueValidator,
-    validate_comma_separated_integer_list,
-)
+from django.core.validators import MaxValueValidator, RegexValidator
 from django.db import models
 from django.db.models import Q
 from django.db.models.signals import pre_save
@@ -15,6 +12,7 @@ from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 from django.dispatch import receiver
 from model_utils.managers import InheritanceManager
+from modeltranslation.manager import MultilingualManager
 
 from course.models import Course
 from core.utils import unique_slug_generator
@@ -31,6 +29,11 @@ CATEGORY_OPTIONS = (
     ("practice", _("Practice Quiz")),
 )
 
+validate_comma_separated_integer_list = RegexValidator(
+    regex=r'^[\d,]+$',
+    message=_('Enter only digits separated by commas.'),
+    code='invalid'
+)
 
 class QuizManager(models.Manager):
     def search(self, query=None):
@@ -369,6 +372,9 @@ class Sitting(models.Model):
         return answered, total
 
 
+class MultilingualInheritanceManager(InheritanceManager, MultilingualManager):
+    pass
+
 class Question(models.Model):
     quiz = models.ManyToManyField(Quiz, verbose_name=_("Quiz"), blank=True)
     figure = models.ImageField(
@@ -389,7 +395,7 @@ class Question(models.Model):
         verbose_name=_("Explanation"),
     )
 
-    objects = InheritanceManager()
+    objects = MultilingualInheritanceManager()
 
     class Meta:
         verbose_name = _("Question")
